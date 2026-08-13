@@ -35,6 +35,17 @@ ui <- fluidPage(
       tags$strong("Step 1. Upload SQLite"),
       fileInput("sqlite", NULL, accept = c(".sqlite3", ".sqlite", ".db")),
       tags$hr(),
+      tags$strong("Step 2. Edit codebook offline"),
+      tags$p(
+        style = "font-size: 90%; margin-top: 6px;",
+        "Open the ", tags$em("Review table"), " tab, click ",
+        tags$strong("Download review CSV"), ", open it in Excel, ",
+        "save-as with a ", tags$code("..mod.xlsx"), " suffix, then fill in the ",
+        tags$code("Old_New"), " and ", tags$code("from_to"), " columns to ",
+        "describe rename / merge / add / apply / unlink operations. ",
+        "See the ", tags$em("Instructions"), " tab for the full recipe."
+      ),
+      tags$hr(),
       tags$strong("Step 3. Upload mod-Excel"),
       fileInput("modxlsx", NULL, accept = c(".xlsx")),
       numericInput("length_path", "Hierarchy depth (length.path)",
@@ -63,7 +74,109 @@ ui <- fluidPage(
           h4("Per-highlight review table"),
           downloadButton("download_review", "Download review CSV"),
           br(), br(),
+          div(
+            style = "background:#f5f7fa; border-left:4px solid #337ab7; padding:10px 14px; margin-bottom:12px;",
+            tags$strong("What to do next:"),
+            tags$ol(
+              tags$li("Click ", tags$strong("Download review CSV"), " above."),
+              tags$li(
+                "Open the CSV in Excel and ", tags$em("Save As"),
+                " with a ", tags$code("..mod.xlsx"), " suffix (e.g. ",
+                tags$code("my_project_tag_review..mod.xlsx"), ")."
+              ),
+              tags$li(
+                "Add a numeric ", tags$code("Old_New"),
+                " value to each row you want to modify (rows sharing an ",
+                tags$code("Old_New"), " form one operation)."
+              ),
+              tags$li(
+                "Add a ", tags$code("from_to"),
+                " value on each of those rows: ",
+                tags$code("from"), " + ", tags$code("to"), " for rename/merge; ",
+                tags$code("add"), " for a new tag; ",
+                tags$code("apply"), " for an existing tag; ",
+                tags$code("unlink"), " to remove a (highlight, tag) pair."
+              ),
+              tags$li(
+                "Come back here and upload the workbook via ",
+                tags$strong("Step 3"), " in the sidebar, then click ",
+                tags$strong("Apply"), "."
+              )
+            ),
+            tags$p(
+              style = "margin-bottom:0;",
+              "Full recipe for each op type is on the ",
+              tags$em("Instructions"), " tab."
+            )
+          ),
           DT::DTOutput("review_dt")
+        ),
+        tabPanel(
+          "3. Instructions",
+          value = "help",
+          h4("How to annotate the mod-Excel"),
+          tags$p(
+            "Each operation is one or more rows in the mod-Excel sharing one ",
+            tags$code("Old_New"), " integer. Different operations use different ",
+            tags$code("Old_New"), " values. The available ",
+            tags$code("from_to"), " values are: ",
+            tags$code("from"), ", ", tags$code("to"), ", ",
+            tags$code("add"), ", ", tags$code("apply"), ", ",
+            tags$code("unlink"), "."
+          ),
+          h5("Rename a tag  (path_change)"),
+          tags$p("Two rows sharing one Old_New. Target path must ",
+                 tags$em("not"), " already exist in the codebook."),
+          tags$table(class = "table table-bordered table-sm",
+            tags$thead(tags$tr(tags$th("Old_New"), tags$th("from_to"), tags$th("path"))),
+            tags$tbody(
+              tags$tr(tags$td("1"), tags$td("from"), tags$td("Character\\\\ Grief\\\\ Rituals")),
+              tags$tr(tags$td("1"), tags$td("to"),   tags$td("Character\\\\ Small Rituals"))
+            )
+          ),
+          h5("Merge two tags  (path_change)"),
+          tags$p("Two rows. Target path must ", tags$em("already"),
+                 " exist. Highlights on the from-tag are re-pointed to the to-tag; the from-tag becomes DEMOTED_."),
+          tags$table(class = "table table-bordered table-sm",
+            tags$thead(tags$tr(tags$th("Old_New"), tags$th("from_to"), tags$th("path"))),
+            tags$tbody(
+              tags$tr(tags$td("2"), tags$td("from"), tags$td("Style\\\\ Voice")),
+              tags$tr(tags$td("2"), tags$td("to"),   tags$td("Style\\\\ Sentence Length"))
+            )
+          ),
+          h5("Add a new tag  (add)"),
+          tags$p("One row per highlight to attach the new tag to. All rows share the same path. Path must ",
+                 tags$em("not"), " already exist. Highlight cells can be blank for a vocabulary-only add."),
+          tags$table(class = "table table-bordered table-sm",
+            tags$thead(tags$tr(tags$th("Old_New"), tags$th("from_to"), tags$th("highlight_id"), tags$th("path"))),
+            tags$tbody(
+              tags$tr(tags$td("3"), tags$td("add"), tags$td("42"), tags$td("Character\\\\ Silence")),
+              tags$tr(tags$td("3"), tags$td("add"), tags$td("57"), tags$td("Character\\\\ Silence"))
+            )
+          ),
+          h5("Apply an existing tag  (apply)"),
+          tags$p("Mirror of add. Path must ", tags$em("already"), " exist -- exactly once."),
+          tags$table(class = "table table-bordered table-sm",
+            tags$thead(tags$tr(tags$th("Old_New"), tags$th("from_to"), tags$th("highlight_id"), tags$th("path"))),
+            tags$tbody(
+              tags$tr(tags$td("4"), tags$td("apply"), tags$td("88"), tags$td("Setting\\\\ Domestic")),
+              tags$tr(tags$td("4"), tags$td("apply"), tags$td("91"), tags$td("Setting\\\\ Domestic"))
+            )
+          ),
+          h5("Unlink a (highlight, tag) pair  (unlink)"),
+          tags$p("One row per pair to remove. Other rows with the same tag or highlight are untouched. Path column is ignored."),
+          tags$table(class = "table table-bordered table-sm",
+            tags$thead(tags$tr(tags$th("Old_New"), tags$th("from_to"), tags$th("highlight_id"), tags$th("tag_id"))),
+            tags$tbody(
+              tags$tr(tags$td("5"), tags$td("unlink"), tags$td("100"), tags$td("3")),
+              tags$tr(tags$td("5"), tags$td("unlink"), tags$td("101"), tags$td("3"))
+            )
+          ),
+          h5("Order of application"),
+          tags$p("The Apply step re-orders operations by class before running: ",
+                 tags$code("path_change"), " -> ", tags$code("add"), " -> ",
+                 tags$code("apply"), " -> ", tags$code("unlink"),
+                 ". Ordering within Old_New numbers is preserved within each class.")
         ),
         tabPanel(
           "4. Parsed operations",
