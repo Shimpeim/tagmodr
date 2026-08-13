@@ -37,8 +37,9 @@ tagmodr::install_launcher()
 ```
 
 By default this asks you where to install the launcher (a folder picker
-in interactive sessions; falls back to `~/Desktop`). Pass `dest = "..."`
-to skip the prompt. The copy is marked executable and — on macOS — has
+in interactive sessions; the current working directory is the default —
+Cancel the Tk dialog or hit Enter at the readline prompt to accept it).
+Pass `dest = "..."` to skip the prompt. The copy is marked executable and — on macOS — has
 its Gatekeeper quarantine attribute stripped so it runs on first
 double-click. The launcher itself self-installs `tagmodr`, `shiny`, and
 `DT` on first run. See `inst/launcher/README.md` for the macOS

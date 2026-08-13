@@ -8,7 +8,8 @@ install_launcher(dest = NULL, overwrite = FALSE)
 }
 \arguments{
 \item{dest}{Directory to copy the launcher into. \code{NULL} (default)
-asks interactively; a character path uses it directly.}
+asks interactively, defaulting to the current working directory; a
+character path uses it directly.}
 
 \item{overwrite}{Logical. Overwrite an existing file at \code{dest}?
 Default \code{FALSE}.}
@@ -25,8 +26,10 @@ then calls \code{\link{launch_app}}.
 }
 \details{
 If \code{dest} is \code{NULL} (the default) and the R session is
-interactive, a folder-picker prompts the user for the install location
--- Tk file dialog when available, plain \code{readline()} fallback
-otherwise. In non-interactive sessions \code{dest} falls back to
-\code{"~/Desktop"}. Pass \code{dest} explicitly to skip the prompt.
+interactive, a folder-picker prompts the user for the install location.
+The default answer -- selected by cancelling the Tk dialog or hitting
+Enter at the \code{readline()} prompt -- is the current working
+directory (\code{\link{getwd}()}). In non-interactive sessions
+\code{dest} falls back to \code{getwd()} silently. Pass \code{dest}
+explicitly to skip the prompt.
 }

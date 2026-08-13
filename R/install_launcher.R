@@ -7,13 +7,16 @@
 #' then calls \code{\link{launch_app}}.
 #'
 #' If \code{dest} is \code{NULL} (the default) and the R session is
-#' interactive, a folder-picker prompts the user for the install location
-#' -- Tk file dialog when available, plain \code{readline()} fallback
-#' otherwise. In non-interactive sessions \code{dest} falls back to
-#' \code{"~/Desktop"}. Pass \code{dest} explicitly to skip the prompt.
+#' interactive, a folder-picker prompts the user for the install location.
+#' The default answer -- selected by cancelling the Tk dialog or hitting
+#' Enter at the \code{readline()} prompt -- is the current working
+#' directory (\code{\link{getwd}()}). In non-interactive sessions
+#' \code{dest} falls back to \code{getwd()} silently. Pass \code{dest}
+#' explicitly to skip the prompt.
 #'
 #' @param dest Directory to copy the launcher into. \code{NULL} (default)
-#'   asks interactively; a character path uses it directly.
+#'   asks interactively, defaulting to the current working directory; a
+#'   character path uses it directly.
 #' @param overwrite Logical. Overwrite an existing file at \code{dest}?
 #'   Default \code{FALSE}.
 #'
@@ -80,40 +83,41 @@ install_launcher <- function(dest = NULL, overwrite = FALSE) {
   invisible(out)
 }
 
-# Interactive folder picker. Tries Tk first (native-ish on macOS/Linux/
-# Windows via base R's tcltk); falls back to readline() with ~/Desktop as
-# the default. Non-interactive callers get ~/Desktop with an informational
-# message. Returns NULL if the user cancels the Tk dialog.
+# Interactive folder picker. Default answer = the current working
+# directory. Tries Tk first (native-ish on macOS/Linux/Windows via base
+# R's tcltk); falls back to readline() otherwise. Cancelling the Tk
+# dialog or hitting Enter at the readline prompt accepts the default
+# (working dir) rather than aborting -- the user asked "default = wd
+# and ask any other place".
 choose_install_dest <- function() {
-  default <- path.expand("~/Desktop")
+  default <- getwd()
 
   if (!interactive()) {
-    message(sprintf("install_launcher: non-interactive; using default dest %s", default))
+    message(sprintf("install_launcher: non-interactive; using working directory %s", default))
     return(default)
   }
 
-  # Prefer a GUI folder picker if tcltk is available. capabilities("tcltk")
-  # is TRUE on standard R builds; guard against the rare case where it's not.
   if (requireNamespace("tcltk", quietly = TRUE) &&
       isTRUE(unname(capabilities("tcltk")))) {
+    cat(sprintf(
+      "Choose install directory (Cancel accepts the current working dir: %s) ...\n",
+      default
+    ))
     picked <- tryCatch(
       tcltk::tk_choose.dir(
         default = default,
-        caption = "Choose where to install tagmodr.command"
+        caption = "Install tagmodr.command  --  Cancel = current working dir"
       ),
       error = function(e) NA_character_
     )
     if (length(picked) == 1L && !is.na(picked) && nzchar(picked)) {
       return(picked)
     }
-    # Tk returned "" -- user hit Cancel. Bail rather than silently defaulting.
-    if (length(picked) == 1L && !is.na(picked) && !nzchar(picked)) {
-      return(NULL)
-    }
-    # Tk failed to open (no display, etc.) -- drop through to readline.
+    # Tk returned "" (Cancel) OR failed to open -- fall through to
+    # readline so the user still gets a chance to type a path.
   }
 
-  cat(sprintf("Where to install tagmodr.command? [default: %s]\n", default))
+  cat(sprintf("Install to which directory? [Enter = %s]\n", default))
   ans <- readline("Directory: ")
   if (!nzchar(ans)) default else ans
 }
