@@ -40,19 +40,24 @@ if [ -z "$RSCRIPT" ]; then
 fi
 
 # ---- Install missing packages, then launch ---------------------------
-"$RSCRIPT" --vanilla -e '
+# --no-init-file skips ~/.Rprofile (avoids user-site interactive weirdness)
+# but still reads ~/.Renviron -- the file that typically puts the user
+# library on .libPaths(). Using --vanilla here would drop the user lib
+# and cause a stale system-lib copy of tagmodr to shadow whatever was
+# installed interactively.
+"$RSCRIPT" --no-init-file -e '
   repo <- "https://cloud.r-project.org"
-  ensure <- function(pkg, github = NULL) {
-    if (requireNamespace(pkg, quietly = TRUE)) return(invisible())
-    if (is.null(github)) {
-      install.packages(pkg, repos = repo)
-    } else {
-      if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes", repos = repo)
-      remotes::install_github(github, upgrade = "never")
-    }
+  ensure_cran <- function(pkg) {
+    if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg, repos = repo)
   }
-  ensure("shiny")
-  ensure("DT")
-  ensure("tagmodr", github = "Shimpeim/tagmodr")
+  ensure_cran("remotes")
+  ensure_cran("shiny")
+  ensure_cran("DT")
+  # Always ask remotes for tagmodr -- with force = FALSE (default) it
+  # checks the remote git SHA against the installed copy and skips the
+  # reinstall if we are already on the latest. That means every launch
+  # picks up new releases without the user having to remember to
+  # remotes::install_github() themselves.
+  remotes::install_github("Shimpeim/tagmodr", upgrade = "never", quiet = TRUE)
   tagmodr::launch_app(launch.browser = TRUE)
 ' || die "The Shiny app exited with an error. Run the launcher from a Terminal to see the full log."

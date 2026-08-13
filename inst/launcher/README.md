@@ -37,6 +37,38 @@ run it because it was downloaded from the internet. Either:
 
 Subsequent double-clicks work directly.
 
+## "Launcher shows an old version of the app"
+
+Since v0.2.5 the launcher re-checks GitHub on every run and installs any
+new release automatically (via `remotes::install_github` with default
+`force = FALSE`, which no-ops if you're already on the latest SHA).
+
+If you are on an older launcher and the app still shows a stale version
+after `remotes::install_github("Shimpeim/tagmodr")`, you probably have
+**two installed copies** in different library paths -- typically one in
+`~/Library/R/library` (user lib) and one in
+`/Library/Frameworks/R.framework/Versions/*/Resources/library` (system
+lib). Interactive R sees both; `Rscript --vanilla` sees only the system
+lib and picks up whichever version lives there. Diagnose with:
+
+```r
+for (lp in .libPaths()) {
+  d <- file.path(lp, "tagmodr", "DESCRIPTION")
+  if (file.exists(d)) cat(sprintf("%s : %s\n", lp, read.dcf(d)[1,"Version"]))
+}
+```
+
+Then reinstall into the older-version library explicitly:
+
+```r
+old_lib <- "/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library"
+remove.packages("tagmodr", lib = old_lib)
+remotes::install_github("Shimpeim/tagmodr", lib = old_lib)
+```
+
+Updating to the v0.2.5+ launcher (which drops `--vanilla`) fixes this
+class of problem going forward.
+
 ## "you do not have appropriate access privileges" error
 
 This is macOS's error when the file lacks the executable bit. It happens
