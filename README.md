@@ -15,6 +15,32 @@ The pipeline exists because Taguette's UI is optimised for coding individual doc
 remotes::install_github("Shimpeim/tagmodr")
 ```
 
+## Interactive UI
+
+There is a Shiny app that walks the two-pass workflow end-to-end:
+
+```r
+tagmodr::launch_app()
+```
+
+The app steps: upload SQLite → preview + download review CSV → upload the
+edited mod-Excel → preview the parsed operations → apply → download the
+updated SQLite for re-import into Taguette. Requires `shiny` and `DT`
+(Suggests).
+
+### macOS: double-clickable launcher
+
+To install a Desktop launcher that starts the app on double-click:
+
+```r
+tagmodr::install_launcher()
+```
+
+This copies `tagmodr.command` to your Desktop and marks it executable.
+The launcher self-installs `tagmodr`, `shiny`, and `DT` on first run. See
+`inst/launcher/README.md` for the macOS Gatekeeper first-launch note and
+alternative install locations.
+
 ## The two-pass workflow
 
 ```
