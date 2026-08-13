@@ -1,0 +1,11 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.git$
+^\.gitignore$
+^\.github$
+^LICENSE\.md$
+^data-raw$
+^cran-comments\.md$
+^\.DS_Store$
+^tagmodr\.Rcheck$
+^.*\.tar\.gz$

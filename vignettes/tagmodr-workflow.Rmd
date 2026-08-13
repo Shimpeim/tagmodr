@@ -1,0 +1,136 @@
+---
+title: "One full iteration with tagmodr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{One full iteration with tagmodr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette walks one full iteration of the two-pass workflow on the
+package's synthetic fixture. The fixture is a small "book club discussion"
+dataset with two documents, seven tags (mixing ASCII and Japanese segments),
+and twelve `highlight_tags` rows.
+
+## Load the SQLite export
+
+```{r}
+library(tagmodr)
+
+fixture <- system.file("extdata", "example_project.sqlite3", package = "tagmodr")
+sqlite <- read_taguette_sqlite(fixture)
+names(sqlite)
+```
+
+`read_taguette_sqlite()` returns a named list keyed by SQLite table name.
+The three tables the pipeline cares about are `tags`, `highlight_tags`, and
+`highlights` — see the README for how these column-shaped like/unlike their
+names suggest.
+
+## Review pass — materialise the hierarchy
+
+Normalise tag paths so both ASCII and Japanese segment boundaries carry the
+canonical `\\ ` separator, then build the per-highlight review table:
+
+```{r}
+tags_normalised <- normalize_tag_paths(sqlite$tags)
+tags_normalised$path
+
+review <- build_review_table(
+  df.tag_table  = tags_normalised,
+  df.highlights = sqlite$highlight_tags,
+  df.snippets   = sqlite$highlights
+)
+head(review)
+```
+
+Notice that `normalize_tag_paths()` has inserted the space after `\\` in the
+Japanese paths that were stored without it (`登場人物\\内面` →
+`登場人物\\ 内面`).
+
+In a real iteration, you would now write `review` to CSV, open it in Excel,
+add the `Old_New` and `from_to` columns to describe your operations, and
+save the workbook as `..mod.xlsx`. In this vignette we skip the Excel
+round-trip and build the operations list directly.
+
+## Mod pass — construct operations in memory
+
+For demonstration, three operations:
+
+1. Merge `Character\\ Grief` into `Style\\ Voice`.
+2. Add a new tag `Character\\ Silence` and attach it to highlight 3.
+3. Unlink `(highlight_id = 8, tag_id = 5)`.
+
+```{r}
+op_merge <- structure(
+  list(
+    str_from = "Character\\\\ Grief",
+    str_to   = "Style\\\\ Voice"
+  ),
+  class = c("path_change", "list")
+)
+op_add <- structure(
+  list(
+    path = "Character\\\\ Silence",
+    highlight_ids = 3L
+  ),
+  class = c("add", "list")
+)
+op_unlink <- structure(
+  list(
+    highlight_ids = 8L,
+    tag_ids = 5L
+  ),
+  class = c("unlink", "list")
+)
+ops <- list("1" = op_merge, "2" = op_add, "3" = op_unlink)
+```
+
+Apply them:
+
+```{r}
+state <- apply_tagmod_ops(
+  ops,
+  df.tag_table  = tags_normalised,
+  df.highlights = sqlite$highlight_tags
+)
+
+# tags after: the merged-from row is DEMOTED_, the new Silence tag has a fresh id.
+state[[1]][, c("id", "path")]
+
+# highlight_tags after: (8,5) is gone; the new tag has picked up (3, new_id).
+tail(state[[2]])
+```
+
+## Write the updated SQLite
+
+Splice the updated frames back into the list and write:
+
+```{r}
+sqlite$tags           <- state[[1]]
+sqlite$highlight_tags <- state[[2]]
+
+out <- tempfile(fileext = ".sqlite3")
+write_taguette_sqlite(sqlite, out)
+file.exists(out)
+```
+
+The written SQLite has the same table shape as the input and can be
+re-imported into Taguette to see the reorganised codebook.
+
+## In a real project
+
+Instead of constructing `ops` in memory, you'd:
+
+1. `readr::write_excel_csv(review, "project_tag_review.csv")`.
+2. Open in Excel, save as `project_tag_review..mod.xlsx`, annotate.
+3. `ops <- create_tagmod_list("project_tag_review..mod.xlsx", length.path = 4L)`.
+
+The rest of the mod pass is identical.
