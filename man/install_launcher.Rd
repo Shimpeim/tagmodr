@@ -4,11 +4,11 @@
 \alias{install_launcher}
 \title{Copy the double-clickable launcher to a chosen destination.}
 \usage{
-install_launcher(dest = "~/Desktop", overwrite = FALSE)
+install_launcher(dest = NULL, overwrite = FALSE)
 }
 \arguments{
-\item{dest}{Directory to copy the launcher into. Default: user's
-Desktop.}
+\item{dest}{Directory to copy the launcher into. \code{NULL} (default)
+asks interactively; a character path uses it directly.}
 
 \item{overwrite}{Logical. Overwrite an existing file at \code{dest}?
 Default \code{FALSE}.}
@@ -22,4 +22,11 @@ to \code{dest} and sets the executable bit so double-clicking it in
 Finder launches the Shiny app. The launcher itself checks that R is
 installed, installs \pkg{tagmodr}, \pkg{shiny}, and \pkg{DT} if missing,
 then calls \code{\link{launch_app}}.
+}
+\details{
+If \code{dest} is \code{NULL} (the default) and the R session is
+interactive, a folder-picker prompts the user for the install location
+-- Tk file dialog when available, plain \code{readline()} fallback
+otherwise. In non-interactive sessions \code{dest} falls back to
+\code{"~/Desktop"}. Pass \code{dest} explicitly to skip the prompt.
 }

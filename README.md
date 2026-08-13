@@ -30,16 +30,19 @@ updated SQLite for re-import into Taguette. Requires `shiny` and `DT`
 
 ### macOS: double-clickable launcher
 
-To install a Desktop launcher that starts the app on double-click:
+To install a double-click launcher that starts the app:
 
 ```r
 tagmodr::install_launcher()
 ```
 
-This copies `tagmodr.command` to your Desktop and marks it executable.
-The launcher self-installs `tagmodr`, `shiny`, and `DT` on first run. See
-`inst/launcher/README.md` for the macOS Gatekeeper first-launch note and
-alternative install locations.
+By default this asks you where to install the launcher (a folder picker
+in interactive sessions; falls back to `~/Desktop`). Pass `dest = "..."`
+to skip the prompt. The copy is marked executable and — on macOS — has
+its Gatekeeper quarantine attribute stripped so it runs on first
+double-click. The launcher itself self-installs `tagmodr`, `shiny`, and
+`DT` on first run. See `inst/launcher/README.md` for the macOS
+first-launch note.
 
 ## The two-pass workflow
 
