@@ -37,6 +37,19 @@ run it because it was downloaded from the internet. Either:
 
 Subsequent double-clicks work directly.
 
+## "you do not have appropriate access privileges" error
+
+This is macOS's error when the file lacks the executable bit. It happens
+if the file was downloaded via a browser (mode 644) rather than placed by
+`tagmodr::install_launcher()` (mode 755). Fix in one line:
+
+```bash
+chmod +x ~/Desktop/tagmodr.command && xattr -d com.apple.quarantine ~/Desktop/tagmodr.command
+```
+
+Or re-run `tagmodr::install_launcher(overwrite = TRUE)` in R; from v0.2.1
+onwards this also strips the quarantine attribute.
+
 ## Windows / Linux
 
 There is no bundled launcher for Windows or Linux. On those systems, run:

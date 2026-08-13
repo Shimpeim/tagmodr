@@ -37,7 +37,31 @@ install_launcher <- function(dest = "~/Desktop", overwrite = FALSE) {
 
   # Set the executable bit so Finder / macOS Terminal will run it on
   # double-click. On non-Unix systems Sys.chmod is a no-op.
-  Sys.chmod(out, mode = "0755")
+  Sys.chmod(out, mode = as.octmode("755"))
+
+  # Defensive: strip macOS Gatekeeper's quarantine xattr if present. This
+  # matters when the launcher was previously downloaded from a browser
+  # (mode 644 + com.apple.quarantine) and install_launcher() is being
+  # used to overwrite it -- we want the freshly-installed file to be
+  # runnable on first double-click.
+  if (Sys.info()[["sysname"]] == "Darwin" && nzchar(Sys.which("xattr"))) {
+    # Ignore exit status: xattr -d exits nonzero if the attribute isn't
+    # present, which is the normal case for a fresh copy.
+    suppressWarnings(
+      system2("xattr", args = c("-d", "com.apple.quarantine", out),
+              stdout = FALSE, stderr = FALSE)
+    )
+  }
+
+  # Verify the exec bit landed. On some sync tools (iCloud, network
+  # shares) chmod may not stick; warn the user with an actionable fix.
+  final_mode <- file.info(out)$mode
+  if (!is.na(final_mode) && (as.integer(final_mode) %% 512L) < 448L) {
+    warning(sprintf(
+      "install_launcher: executable bit did not stick on %s (mode is %s). Run in a terminal:\n  chmod +x %s",
+      out, format(as.octmode(final_mode)), shQuote(out)
+    ))
+  }
 
   message(sprintf("Installed launcher at: %s\nDouble-click it in Finder to start.", out))
   invisible(out)
