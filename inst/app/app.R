@@ -356,15 +356,23 @@ server <- function(input, output, session) {
     o <- ops(); req(o)
     tryCatch({
       tags_norm <- normalize_tag_paths(sq$tags)
-      state <- apply_tagmod_ops(o,
-                                df.tag_table  = tags_norm,
-                                df.highlights = sq$highlight_tags)
-      applied_state(state)
-      showNotification(
-        sprintf("Applied %d op(s). tag_table: %d rows. highlight_tags: %d rows.",
-                length(o), nrow(state[[1]]), nrow(state[[2]])),
-        type = "message", duration = 6
+      skip_msgs <- character(0)
+      state <- withCallingHandlers(
+        apply_tagmod_ops(o,
+                         df.tag_table  = tags_norm,
+                         df.highlights = sq$highlight_tags),
+        warning = function(w) {
+          skip_msgs <<- c(skip_msgs, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
       )
+      applied_state(state)
+      notif <- sprintf("Applied %d op(s). tag_table: %d rows. highlight_tags: %d rows.",
+                       length(o), nrow(state[[1]]), nrow(state[[2]]))
+      if (length(skip_msgs) > 0L) {
+        notif <- paste0(notif, "\nSkipped: ", paste(skip_msgs, collapse = "; "))
+      }
+      showNotification(notif, type = "message", duration = 6)
     }, error = function(e) {
       applied_state(NULL)
       showNotification(paste("Apply failed:", conditionMessage(e)),

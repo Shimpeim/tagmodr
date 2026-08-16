@@ -52,11 +52,18 @@ apply_tagmod_ops <- function(ops, df.tag_table, df.highlights) {
           df.highlights = state[[2]]
         )
       } else if (inherits(op, "add")) {
-        add_tag_with_highlights(
-          path = op$path,
-          highlight_ids = op$highlight_ids,
-          df.tag_table = state[[1]],
-          df.highlights = state[[2]]
+        tryCatch(
+          add_tag_with_highlights(
+            path          = op$path,
+            highlight_ids = op$highlight_ids,
+            df.tag_table  = state[[1]],
+            df.highlights = state[[2]]
+          ),
+          error = function(e) {
+            warning(sprintf("add op (path='%s') skipped: %s",
+                            op$path, conditionMessage(e)))
+            state
+          }
         )
       } else {
         tag_edit(

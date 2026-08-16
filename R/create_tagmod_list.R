@@ -158,7 +158,7 @@ create_tagmod_list <- function(
               unique(d$Old_New), ft, length(paths)
             ))
           }
-          hids <- d$highlight_id[!is.na(d$highlight_id)]
+          hids <- unique(d$highlight_id[!is.na(d$highlight_id)])
           obj <- list(
             path = paths,
             highlight_ids = if (length(hids) == 0L) integer(0) else as.integer(hids)
