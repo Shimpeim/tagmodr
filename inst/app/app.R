@@ -387,17 +387,31 @@ server <- function(input, output, session) {
   # ------------------------------------------------------------------
   output$download_updated <- downloadHandler(
     filename = function() {
-      req(input$sqlite)
-      base <- sub("\\.(sqlite3?|db)$", "", input$sqlite$name)
+      nm <- isolate(input$sqlite$name)
+      if (is.null(nm)) return("updated.sqlite3")
+      base <- sub("\\.(sqlite3?|db)$", "", nm)
       sprintf("%s_updated.sqlite3", base)
     },
     content = function(file) {
-      sq <- sqlite_data(); req(sq)
-      st <- applied_state()
-      validate(need(!is.null(st), "Click Apply first before downloading."))
-      sq$tags <- st[[1]]
+      sq <- isolate(sqlite_data())
+      if (is.null(sq)) {
+        showNotification("Upload a SQLite export first.", type = "warning")
+        return(invisible(NULL))
+      }
+      st <- isolate(applied_state())
+      if (is.null(st)) {
+        showNotification("Click Apply before downloading.", type = "warning")
+        return(invisible(NULL))
+      }
+      sq$tags           <- st[[1]]
       sq$highlight_tags <- st[[2]]
-      write_taguette_sqlite(sq, file)
+      tryCatch(
+        write_taguette_sqlite(sq, file),
+        error = function(e) {
+          showNotification(paste("Write failed:", conditionMessage(e)),
+                           type = "error", duration = NULL)
+        }
+      )
     }
   )
 
