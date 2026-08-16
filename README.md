@@ -312,7 +312,7 @@ Create a tag directly from the mod-Excel; optionally attach it to specific highl
 | 3 | `add` | 42  | `Character\\ Silence` |
 | 3 | `add` | 57  | `Character\\ Silence` |
 
-All rows in an `add` group must share the same `path`. The `path` must **not** already exist in `tags`. Highlight rows with a blank `highlight_id` are legal — the tag is created without any highlights attached.
+All rows in an `add` group must share the same `path`. The `path` must **not** already exist in `tags`. Highlight rows with a blank `highlight_id` are legal — the tag is created without any highlights attached. If the path already exists (or any other per-op error occurs), that individual `add` op is **skipped with a warning** rather than aborting the whole batch; the Shiny Apply notification lists which paths were skipped.
 
 **`Old_New` may be left blank** for `add` rows. `create_tagmod_list()` auto-assigns a synthetic group key so they are not dropped. Rows with the same `path` are grouped into one `add` operation; rows with different (or blank) paths become separate operations.
 
