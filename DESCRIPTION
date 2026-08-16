@@ -1,7 +1,7 @@
 Package: tagmodr
 Type: Package
 Title: Iterative Codebook Development for Taguette QDA Projects
-Version: 0.2.5
+Version: 0.3.0
 Authors@R: person("Shimpei", "Morimoto", role = c("aut", "cre"),
     email = "mrmt.shmp@gmail.com")
 Description: R pipeline for iterative codebook development on Taguette

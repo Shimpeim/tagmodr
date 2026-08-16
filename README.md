@@ -45,6 +45,130 @@ double-click. The launcher itself self-installs `tagmodr`, `shiny`, and
 `DT` on first run. See `inst/launcher/README.md` for the macOS
 first-launch note.
 
+## Tag Viewer
+
+The Shiny app's **Tag Viewer** tab reveals structural patterns across a Taguette
+codebook that are invisible in the flat review CSV: near-duplicate tags, tag
+families that recur across documents, and systematic relationships between codes
+in different analytical strata.
+
+### Stratification — Column and Row roles
+
+Select one or more columns from the review table to stratify tags. For each
+selected variable, choose whether its levels become **columns** (side-by-side
+strata) or **rows** (labelled section groups within each column):
+
+| Role | Effect in the side-by-side table |
+|---|---|
+| **Column** | Each unique value becomes one side-by-side column; tags within each column are seriated independently |
+| **Row** | Unique value combinations create labelled row sections; each column shows tags for that section only |
+
+Example combinations:
+
+| `"1"` role | `"document_id"` role | Result |
+|---|---|---|
+| Column | — | one column per top-level code family |
+| — | Column | one column per source document |
+| Column | Row | columns = code families; sections within each column = documents |
+| Row | Column | columns = documents; sections within each column = code families |
+
+### Distance column
+
+By default, tags are clustered using their full **path** strings. Use the
+**"Distance on:"** selector to compute Levenshtein distances on any other
+character column of the review table instead — for example `snippet` (to group
+tags by the text they co-occur with) or `"2"` (to cluster on the second
+hierarchy rank only).
+
+When **"Distance on:"** is set to `path`, a **"Path part:"** radio button
+appears:
+
+- **full** — uses the complete path string (`Character\\ Grief\\ Rituals`)
+- **leaf** — uses only the last `\\ `-delimited segment (`Rituals`)
+
+Full-path mode detects near-duplicate paths including shared prefixes. Leaf-only
+mode detects lexically similar terminal codes across different branches of the
+hierarchy — useful for spotting synonymous codes filed under different domains.
+
+### Seriation ordering
+
+Within each stratum, tags are not sorted alphabetically but by *seriation*:
+hierarchical clustering (`hclust`, average linkage) on normalised Levenshtein
+distances between the chosen distance strings, with the dendrogram leaf sequence
+used directly as the display order. Tags that are string-similar land adjacent
+in the column.
+
+The `dist_to_prev_within` column carries the continuous normalised distance
+[0, 1] to the tag immediately above in the sorted list:
+
+- Near-zero → near-duplicate pair (candidate merge or rename).
+- Large jump → natural break between tag families.
+
+No discrete cluster IDs are assigned. The analyst reads the similarity gradient
+directly from the distance values.
+
+### Side-by-side layout
+
+Each column-role stratum occupies one column in the wide table. When row-role
+variables are set, the table is sectioned by their unique value combinations,
+with a labelled separator row at the start of each section. Clicking a cell
+shows the highlight IDs and document IDs attached to that tag in that stratum.
+
+Use the **"Cell content (side-by-side):"** selector to substitute the path
+strings in the wide table with values from any other column of the review table
+(e.g. `snippet` to read highlight text in-place). The underlying tag identity
+is preserved for the click handler regardless of which column is displayed.
+
+### Display column selector
+
+Use the **"Show columns:"** multi-selector to choose which columns appear in
+the **highlight detail** and **across-strata** result tables. This is useful
+for hiding irrelevant columns when working with wide review tables.
+
+### Centroid stratum
+
+One column-role stratum can optionally be designated the *centroid*. Tags in
+all other strata are re-ordered so that tags string-similar to a centroid tag
+migrate toward that tag's row, creating horizontal visual alignment across the
+side-by-side columns. When row-role variables are set, the pull operates
+independently within each row section, using only that section's centroid tags
+as anchors.
+
+The horizontal pull is controlled by three parameters:
+
+| Parameter | Slider range | What it controls |
+|---|---|---|
+| **Centroid weight** (`w`) | 0.00–1.00 | Global blend: 0 = pure within-stratum order; 1 = full horizontal alignment to centroid |
+| **Neighbourhood radius** (`τ`) | 0.00–1.00 | Distance threshold: only centroid tags within this normalised Levenshtein distance act as anchors |
+| **Pull sharpness** (`α`) | 1–50 | Softmax temperature within the neighbourhood: 1 ≈ spread evenly across near anchors; 50 ≈ snap to the single nearest anchor |
+
+Named limit cases reproducible by slider settings:
+
+| Mode | `w` | `τ` | `α` |
+|---|---|---|---|
+| No centroid pull | 0.00 | any | any |
+| Pure soft pull (uniform average) | 1.00 | 1.00 | 1 |
+| Pure hard pull (nearest-neighbour) | 1.00 | 1.00 | 50 |
+| Neighbourhood soft | 1.00 | 0.30 | 1 |
+| Neighbourhood hard | 1.00 | 0.30 | 50 |
+
+The underlying formula for the horizontal position H of each non-centroid tag:
+
+```
+w_jk  = exp(−α · d_jk) · 1[d_jk ≤ τ]        (masked softmax weights)
+H_j   = Σ_k w_jk · p_k  /  Σ_k w_jk          (weighted centroid position)
+```
+
+where `d_jk` is the normalised Levenshtein distance from the non-centroid tag
+`j` to centroid tag `k`, and `p_k` is `k`'s position in the centroid seriation,
+normalised to [0, 1]. If all centroid tags exceed `τ` for a given `j`, the mask
+is dropped and the soft pull uses all centroid tags (fallback prevents
+division-by-zero). The blended display position is then:
+
+```
+O_final = (1 − w) · O_within + w · H
+```
+
 ## The two-pass workflow
 
 ```
