@@ -37,8 +37,15 @@ Each element is tagged with an S3 class describing its op type:
 or \code{"apply"}. \code{apply_tagmod_ops()} dispatches on this class.
 }
 \details{
-Rows with NA \code{Old_New} are silently dropped. Mixed \code{from_to}
-values within one \code{Old_New} group are a hard error.
+Rows with NA \code{Old_New} are silently dropped, **except** when
+\code{from_to = "add"}: those rows are auto-assigned a synthetic
+\code{Old_New} key (a negative integer not present among the user-supplied
+values) so they are processed as \code{add} operations rather than dropped.
+Rows sharing the same \code{path} receive the same synthetic key and are
+therefore treated as one \code{add} group (multiple \code{highlight_ids} for
+the same new tag). Rows with both \code{from_to = "add"} and \code{NA path}
+are each assigned a unique synthetic key (one singleton \code{add} op each).
+Mixed \code{from_to} values within one \code{Old_New} group are a hard error.
 
 For \code{path_change} groups: the \code{path} cell is regex-escaped
 (backslashes doubled, parentheses escaped) so it can be used as a

@@ -7,8 +7,15 @@
 #' \code{"path_change"} (rename or merge), \code{"unlink"}, \code{"add"},
 #' or \code{"apply"}. \code{apply_tagmod_ops()} dispatches on this class.
 #'
-#' Rows with NA \code{Old_New} are silently dropped. Mixed \code{from_to}
-#' values within one \code{Old_New} group are a hard error.
+#' Rows with NA \code{Old_New} are silently dropped, **except** when
+#' \code{from_to = "add"}: those rows are auto-assigned a synthetic
+#' \code{Old_New} key (a negative integer not present among the user-supplied
+#' values) so they are processed as \code{add} operations rather than dropped.
+#' Rows sharing the same \code{path} receive the same synthetic key and are
+#' therefore treated as one \code{add} group (multiple \code{highlight_ids} for
+#' the same new tag). Rows with both \code{from_to = "add"} and \code{NA path}
+#' are each assigned a unique synthetic key (one singleton \code{add} op each).
+#' Mixed \code{from_to} values within one \code{Old_New} group are a hard error.
 #'
 #' For \code{path_change} groups: the \code{path} cell is regex-escaped
 #' (backslashes doubled, parentheses escaped) so it can be used as a
@@ -44,6 +51,29 @@ create_tagmod_list <- function(
     verbose = FALSE
 ) {
   df.tagmod_tabler <- readxl::read_excel(path = path) %>% data.frame()
+
+  # Auto-assign Old_New for "add" rows with no Old_New so they are processed
+  # rather than dropped.  Each unique path forms one group; rows with NA path
+  # are each treated as a singleton.  Synthetic keys are negative integers that
+  # cannot collide with user-supplied positive Old_New values.
+  add_no_key <- !is.na(df.tagmod_tabler$from_to) &
+                df.tagmod_tabler$from_to == "add" &
+                is.na(df.tagmod_tabler[[id_col.Old_New]])
+  if (any(add_no_key)) {
+    paths_raw <- df.tagmod_tabler$path[add_no_key]
+    paths_for_key <- ifelse(
+      is.na(paths_raw),
+      paste0(".auto_row.", which(add_no_key)),
+      paths_raw
+    )
+    unique_groups <- unique(paths_for_key)
+    key_map <- setNames(
+      seq(-1L, by = -1L, length.out = length(unique_groups)),
+      unique_groups
+    )
+    df.tagmod_tabler[add_no_key, id_col.Old_New] <- key_map[paths_for_key]
+  }
+
   df.tagmod_tabler <- df.tagmod_tabler[!is.na(df.tagmod_tabler[, id_col.Old_New]), ]
 
   colnames(df.tagmod_tabler)[grep(id_col.Old_New, colnames(df.tagmod_tabler))] <- "Old_New"
