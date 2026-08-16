@@ -83,12 +83,13 @@ create_tagmod_list <- function(
     plyr::ddply(
       c("Old_New", "from_to", "highlight_id", "tag_id"),
       function(d) {
-        if (!is.na(d$from_to) && d$from_to == "unlink") return(d)
+        ft1 <- d$from_to[1L]
+        if (!is.na(ft1) && ft1 == "unlink") return(d)
 
-        is_add_or_apply <- !is.na(d$from_to) && d$from_to %in% c("add", "apply")
+        is_add_or_apply <- !is.na(ft1) && ft1 %in% c("add", "apply")
 
-        if (!is.na(d$path)) {
-          if (verbose) message(sprintf("PATH: %s, tag ID: %s (orig)", d$path, d$tag_id))
+        if (!is.na(d$path[1L])) {
+          if (verbose) message(sprintf("PATH: %s, tag ID: %s (orig)", d$path[1L], d$tag_id[1L]))
           d$path <- gsub("[ ]+\\\\\\\\", "\\\\\\\\", d$path)
           for (i in seq_len(length.path)) {
             d$path <-
