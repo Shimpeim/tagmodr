@@ -366,6 +366,11 @@ Hard delete (physical removal from `tags` + `highlight_tags`) is not supported b
 - **Highlight offset drift after DB-Browser edits.** Editing `documents.contents` directly in DB Browser or any external SQLite editor invalidates the character positions in `highlights.start_offset` / `end_offset`. The pipeline has no auto-correction; a planned fix would add a per-document offset-delta column to the mod-Excel and apply it at mod time.
 - **`Old_New` is user-populated, not diff-computed.** Rows with blank `Old_New` are silently dropped from the mod list, **except** for rows with `from_to = "add"`: those are auto-assigned a synthetic `Old_New` key and processed as `add` operations. Rows sharing the same `path` form one group (multiple `highlight_id` rows for the same new tag); rows with a blank `path` are each treated as a singleton op. There is no code path that reconstructs a change history from before/after SQLite states.
 
+## Planned features
+
+- **Direct tag-path editing in the Shiny app.** An in-app interface for renaming, merging, and restructuring tag paths without producing a mod-Excel workbook — targeting users who want a click-through alternative to the spreadsheet workflow.
+- **Direct tag-note and highlight-note editing in the Shiny app.** In-app text fields to view and update the `description` column of `tags` and the `note` column of `highlights`, so annotation prose can be refined without leaving the review interface.
+
 ## Package layout
 
 ```
