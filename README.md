@@ -370,6 +370,7 @@ Hard delete (physical removal from `tags` + `highlight_tags`) is not supported b
 
 - **Direct tag-path editing in the Shiny app.** An in-app interface for renaming, merging, and restructuring tag paths without producing a mod-Excel workbook — targeting users who want a click-through alternative to the spreadsheet workflow.
 - **Direct tag-note and highlight-note editing in the Shiny app.** In-app text fields to view and update the `description` column of `tags` and the `note` column of `highlights`, so annotation prose can be refined without leaving the review interface.
+- **Auto-generated track-change CSV.** After a successful Apply, the Shiny app writes a CSV audit log recording who changed what and when. The user enters their own signature (name / initials) in a text field in the app before applying. Each row in the log describes one applied change and includes: project directory, timestamp, editor signature, SQLite filename, modifier xlsx filename, `tag_id`, `from_to` operation type, tag `path`, and the `highlight_id`(s) affected.
 
 ## Package layout
 
